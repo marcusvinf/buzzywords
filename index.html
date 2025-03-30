@@ -199,6 +199,13 @@
         max-width: 250px;
       }
     }
+
+    .cell.selecting {
+      border: 2px solid #4c44f7;
+      transform: scale(1.05);
+      transition: transform 0.1s;
+      box-shadow: 0 0 5px rgba(76, 68, 247, 0.5);
+    }
   </style>
 </head>
 
@@ -410,14 +417,22 @@
 
     function startSelection(e, cell) {
       limparSelecao();
+      
       isSelecting = true;
-      corAtual = gerarCorUnica(false); // gera cor sem remover
+      corAtual = gerarCorUnica(false);
+      
       const x = +cell.dataset.x, y = +cell.dataset.y;
       startX = x;
       startY = y;
       selecionadas = [cell];
       dx = dy = 0;
+      
+      if (!cell.dataset.corOriginal && cell.dataset.palavraEncontrada) {
+        cell.dataset.corOriginal = cell.style.backgroundColor;
+      }
+      
       cell.style.backgroundColor = corAtual;
+      cell.classList.add('selecting');
     }
 
     function gerarCorPreview() {
@@ -427,18 +442,94 @@
 
     function continueSelection(e, cell) {
       if (!isSelecting || !cell.dataset) return;
+      
       const x = +cell.dataset.x, y = +cell.dataset.y;
+      
+      // Se a célula já está selecionada, não faça nada
+      if (selecionadas.includes(cell)) return;
+      
+      // Verificar se a célula está na direção original da seleção
+      // Calculamos a partir da célula inicial, não da última célula
+      const diffX = x - startX;
+      const diffY = y - startY;
+      
+      // Verificar se a célula está na mesma direção da seleção inicial
+      // e se a distância é maior que a última célula selecionada
+      if (dx !== 0 || dy !== 0) {
+        // Verificar se está na mesma linha da direção original
+        const isInLine = (dx === 0 && diffX === 0) || 
+                         (dy === 0 && diffY === 0) || 
+                         (dx !== 0 && dy !== 0 && Math.abs(diffX / dx - diffY / dy) < 0.1);
+                         
+        // Verificar se a distância é maior que a última célula
+        const lastCell = selecionadas[selecionadas.length - 1];
+        const lastX = +lastCell.dataset.x;
+        const lastY = +lastCell.dataset.y;
+        const lastDiffX = lastX - startX;
+        const lastDiffY = lastY - startY;
+        
+        const newDistance = Math.sqrt(diffX * diffX + diffY * diffY);
+        const lastDistance = Math.sqrt(lastDiffX * lastDiffX + lastDiffY * lastDiffY);
+        
+        if (isInLine && newDistance > lastDistance) {
+          // Adicionar todas as células intermediárias que estão na linha
+          const steps = Math.max(Math.abs(diffX - lastDiffX), Math.abs(diffY - lastDiffY));
+          
+          for (let i = 1; i <= steps; i++) {
+            const stepX = lastX + Math.round((x - lastX) * i / steps);
+            const stepY = lastY + Math.round((y - lastY) * i / steps);
+            
+            const intermediateCell = document.querySelector(`.cell[data-x="${stepX}"][data-y="${stepY}"]`);
+            
+            if (intermediateCell && !selecionadas.includes(intermediateCell)) {
+              selecionadas.push(intermediateCell);
+              
+              if (!intermediateCell.dataset.corOriginal && intermediateCell.dataset.palavraEncontrada) {
+                intermediateCell.dataset.corOriginal = intermediateCell.style.backgroundColor;
+              }
+              
+              intermediateCell.style.backgroundColor = corAtual;
+              intermediateCell.classList.add('selecting');
+            }
+          }
+          
+          return;
+        }
+      }
+      
+      // Se for a segunda célula, definir a direção
+      if (selecionadas.length === 1) {
+        dx = Math.sign(diffX);
+        dy = Math.sign(diffY);
+        
+        // Verificar se a direção é válida (não pode ser 0,0)
+        if (dx === 0 && dy === 0) return;
+        
+        selecionadas.push(cell);
+        
+        if (!cell.dataset.corOriginal && cell.dataset.palavraEncontrada) {
+          cell.dataset.corOriginal = cell.style.backgroundColor;
+        }
+        
+        cell.style.backgroundColor = corAtual;
+        cell.classList.add('selecting');
+        return;
+      }
+      
+      // Verificar se a célula está adjacente à última célula na direção correta
       const last = selecionadas[selecionadas.length - 1];
       const lx = +last.dataset.x, ly = +last.dataset.y;
-      if (selecionadas.length === 1) {
-        dx = x - startX;
-        dy = y - startY;
-        if (Math.abs(dx) > 1 || Math.abs(dy) > 1 || (dx === 0 && dy === 0)) return;
-      }
       const dirX = x - lx, dirY = y - ly;
-      if (dirX === dx && dirY === dy && !selecionadas.includes(cell)) {
+      
+      if (dirX === dx && dirY === dy) {
         selecionadas.push(cell);
+        
+        if (!cell.dataset.corOriginal && cell.dataset.palavraEncontrada) {
+          cell.dataset.corOriginal = cell.style.backgroundColor;
+        }
+        
         cell.style.backgroundColor = corAtual;
+        cell.classList.add('selecting');
       }
     }
 
@@ -448,20 +539,45 @@
 
       const palavra = selecionadas.map(c => c.innerText.trim()).join('');
       const reversa = [...selecionadas].reverse().map(c => c.innerText.trim()).join('');
-      const encontrada = palavras.find(p => (p.texto === palavra || p.texto === reversa) && !encontradas.includes(p.texto));
+      
+      const encontrada = palavras.find(p => 
+        (p.texto === palavra || p.texto === reversa) && 
+        !encontradas.includes(p.texto)
+      );
+
+      // Remover a classe de seleção temporária
+      selecionadas.forEach(c => c.classList.remove('selecting'));
 
       if (encontrada) {
-        usadas.push(corAtual); // ✅ Gera cor só se for correta
+        // Se encontrou a palavra, mantém a cor e adiciona a classe found
         encontradas.push(encontrada.texto);
-        usadas.push(corAtual);
+        
         selecionadas.forEach(c => {
-          c.style.backgroundColor = corAtual;
           c.classList.add('found');
+          c.dataset.palavraEncontrada = encontrada.texto;
+          delete c.dataset.corOriginal;
         });
+        
         document.getElementById(`word-${encontrada.texto}`).classList.add('found');
         verificarConclusao();
       } else {
-        selecionadas.forEach(c => c.style.backgroundColor = "");
+        // Se não encontrou, restaura as células para seu estado original
+        selecionadas.forEach(c => {
+          if (c.dataset.palavraEncontrada) {
+            if (c.dataset.corOriginal) {
+              c.style.backgroundColor = c.dataset.corOriginal;
+              delete c.dataset.corOriginal;
+            } else {
+              const palavraEncontrada = palavras.find(p => p.texto === c.dataset.palavraEncontrada);
+              if (palavraEncontrada) {
+                c.style.backgroundColor = palavraEncontrada.cor;
+              }
+            }
+          } else {
+            // Caso contrário, limpa a cor
+            c.style.backgroundColor = "";
+          }
+        });
       }
 
       selecionadas = [];
@@ -473,7 +589,7 @@
         jogoFinalizado = true;
         const parabens = document.getElementById('parabens');
         let tempo = 5;
-        parabens.innerHTML = `🎉 Parabéns!<br>Reiniciando em <span id="contagem">${tempo}</span> segundos`;
+        parabens.innerHTML = `🎉 Parabéns!<br>Reiniciando em <span id="contagem">${tempo}</span> segundos...`;
         parabens.style.display = 'block';
 
         intervaloParabens = setInterval(() => {
@@ -489,7 +605,10 @@
 
     function limparSelecao() {
       document.querySelectorAll('.cell').forEach(c => {
-        if (!c.classList.contains('found')) c.style.backgroundColor = '';
+        // Só limpa se a célula não tiver a classe 'found' e não fizer parte de uma palavra encontrada
+        if (!c.classList.contains('found') && !c.dataset.palavraEncontrada) {
+          c.style.backgroundColor = '';
+        }
       });
     }
 
