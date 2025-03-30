@@ -61,14 +61,13 @@
       grid-template-columns: repeat(14, 1fr);
       gap: 2px;
       justify-content: center;
-      padding: 10px 0;
       box-sizing: border-box;
-      width: auto;
-      max-width: 100vw;
       overflow-x: auto;
+      margin: 0 auto;
+      padding: 10px 0;
+      width: 100%;
+      max-width: 100vw;
     }
-
-
 
     .cell {
       aspect-ratio: 1 / 1;
@@ -165,6 +164,13 @@
         margin-left: 40px;
       }
     }
+
+    @media (max-width: 700px) {
+      .grid {
+        width: calc(100% - 40px);
+        max-width: 90vw;
+      }
+    }
   </style>
 </head>
 
@@ -241,15 +247,13 @@
       return [...arr].sort(() => Math.random() - 0.5);
     }
 
-    function gerarCorUnica() {
-      if (coresDisponiveis.length === 0) {
-        console.warn("Todas as cores foram usadas! Usando cor genérica.");
-        return "#888";
-      }
-      const index = Math.floor(Math.random() * coresDisponiveis.length);
-      const cor = coresDisponiveis.splice(index, 1)[0]; // remove da lista
+    function gerarCorUnica(remover = true) {
+      const disponiveis = coresDisponiveis.filter(c => !usadas.includes(c));
+      const cor = disponiveis[Math.floor(Math.random() * disponiveis.length)] || "#888";
+      if (remover && !usadas.includes(cor)) usadas.push(cor);
       return cor;
     }
+
 
 
 
@@ -385,12 +389,18 @@
     function startSelection(e, cell) {
       limparSelecao();
       isSelecting = true;
-      corAtual = gerarCorUnica();
+      corAtual = gerarCorUnica(false); // gera cor sem remover
       const x = +cell.dataset.x, y = +cell.dataset.y;
-      startX = x, startY = y;
+      startX = x;
+      startY = y;
       selecionadas = [cell];
       dx = dy = 0;
       cell.style.backgroundColor = corAtual;
+    }
+
+    function gerarCorPreview() {
+      const disponiveis = coresDisponiveis.filter(c => !usadas.includes(c));
+      return disponiveis[Math.floor(Math.random() * disponiveis.length)] || "#888";
     }
 
     function continueSelection(e, cell) {
@@ -413,10 +423,13 @@
     function endSelection() {
       if (!isSelecting) return;
       isSelecting = false;
+
       const palavra = selecionadas.map(c => c.innerText.trim()).join('');
       const reversa = [...selecionadas].reverse().map(c => c.innerText.trim()).join('');
       const encontrada = palavras.find(p => (p.texto === palavra || p.texto === reversa) && !encontradas.includes(p.texto));
+
       if (encontrada) {
+        usadas.push(corAtual); // ✅ Gera cor só se for correta
         encontradas.push(encontrada.texto);
         usadas.push(corAtual);
         selecionadas.forEach(c => {
@@ -428,8 +441,10 @@
       } else {
         selecionadas.forEach(c => c.style.backgroundColor = "");
       }
+
       selecionadas = [];
     }
+
 
     function verificarConclusao() {
       if (jogoFinalizado) return;
@@ -462,52 +477,97 @@
     // Easter egg: CTRL + SHIFT + E
     document.addEventListener('keydown', e => {
       if (e.ctrlKey && e.shiftKey && e.code === 'KeyE') {
-        palavras.forEach(p => {
-          if (!encontradas.includes(p.texto)) {
-            encontradas.push(p.texto);
-            document.getElementById(`word-${p.texto}`).classList.add('found');
+        ativarEasterEgg();
+      }
+    });
 
-            for (let y = 0; y < tamanho; y++) {
-              for (let x = 0; x < tamanho; x++) {
-                const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
-                if (cell.innerText === p.texto[0]) {
-                  for (const dir of [
-                    [1, 0], [0, 1], [1, 1], [-1, 1],
-                    [-1, 0], [0, -1], [-1, -1], [1, -1]
-                  ]) {
-                    const match = [];
-                    for (let i = 0; i < p.texto.length; i++) {
-                      const nx = x + dir[0] * i;
-                      const ny = y + dir[1] * i;
-                      if (nx < 0 || ny < 0 || nx >= tamanho || ny >= tamanho) break;
-                      const check = document.querySelector(`.cell[data-x="${nx}"][data-y="${ny}"]`);
-                      if (!check || check.innerText !== p.texto[i]) break;
-                      match.push(check);
-                    }
-                    if (match.length === p.texto.length) {
-                      match.forEach(c => {
-                        c.style.backgroundColor = p.cor;
-                        c.classList.add('found');
-                      });
-                    }
+    function ativarEasterEgg() {
+      if (jogoFinalizado) return;
+
+      palavras.forEach(p => {
+        if (!encontradas.includes(p.texto)) {
+          encontradas.push(p.texto);
+          document.getElementById(`word-${p.texto}`).classList.add('found');
+
+          for (let y = 0; y < tamanho; y++) {
+            for (let x = 0; x < tamanho; x++) {
+              const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+              if (cell.innerText === p.texto[0]) {
+                for (const dir of [
+                  [1, 0], [0, 1], [1, 1], [-1, 1],
+                  [-1, 0], [0, -1], [-1, -1], [1, -1]
+                ]) {
+                  const match = [];
+                  for (let i = 0; i < p.texto.length; i++) {
+                    const nx = x + dir[0] * i;
+                    const ny = y + dir[1] * i;
+                    if (nx < 0 || ny < 0 || nx >= tamanho || ny >= tamanho) break;
+                    const check = document.querySelector(`.cell[data-x="${nx}"][data-y="${ny}"]`);
+                    if (!check || check.innerText !== p.texto[i]) break;
+                    match.push(check);
+                  }
+                  if (match.length === p.texto.length) {
+                    match.forEach(c => {
+                      c.style.backgroundColor = p.cor;
+                      c.classList.add('found');
+                    });
                   }
                 }
               }
             }
           }
-        });
+        }
+      });
 
-        verificarConclusao();
-      }
-    });
-
+      verificarConclusao();
+    }
 
     iniciarJogo();
     document.getElementById('grid').addEventListener('touchmove', (e) => {
       e.preventDefault();
     }, { passive: false });
 
+    let cliqueRapidoContador = 0;
+    let tempoCliqueInicial = null;
+
+    document.addEventListener('click', () => {
+      const agora = Date.now();
+      if (!tempoCliqueInicial || agora - tempoCliqueInicial > 2000) {
+        tempoCliqueInicial = agora;
+        cliqueRapidoContador = 1;
+      } else {
+        cliqueRapidoContador++;
+        if (cliqueRapidoContador === 5) {
+          document.getElementById('botao-secreto').style.display = 'block';
+        }
+      }
+    });
+
+    // Ativa o easter egg ao clicar no botão secreto
+    document.getElementById('botao-secreto').addEventListener('click', () => {
+      ativarEasterEgg();
+      document.getElementById('botao-secreto').style.display = 'none'; // Oculta após uso
+    });
+
   </script>
+  <button id="botao-secreto" style="
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #ff00ff;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  font-size: 22px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  z-index: 9999;
+">
+    ✨
+  </button>
+
 </body>
 
 </html>
