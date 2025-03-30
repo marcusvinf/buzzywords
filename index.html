@@ -48,9 +48,9 @@
       width: 100%;
       align-items: center;
       overflow-x: hidden;
-      /* importante para desktop */
+      padding: 0 5px;
+      box-sizing: border-box;
     }
-
 
     .main-column {
       display: flex;
@@ -61,15 +61,14 @@
     .grid {
       display: grid;
       grid-template-columns: repeat(14, 1fr);
-      /* Distribui as células igualmente */
       gap: 2px;
       justify-content: center;
       box-sizing: border-box;
       width: 100%;
-      padding: 10px;
-      max-width: 100vw;
+      padding: 2px;
+      max-width: 100%;
+      margin: 0 auto;
     }
-
 
     .cell {
       background: white;
@@ -84,11 +83,28 @@
       align-items: center;
       justify-content: center;
       color: black;
-
+      
       aspect-ratio: 1 / 1;
       width: 100%;
       max-width: 36px;
-      /* impede que as células fiquem enormes em telas grandes */
+      /* Reduzir para telas menores */
+      font-size: calc(0.8em + 0.4vw);
+    }
+
+    @media (max-width: 480px) {
+      .cell {
+        max-width: 26px;
+        font-size: 0.85em;
+      }
+      
+      body {
+        padding: 5px;
+      }
+      
+      .grid {
+        padding: 1px;
+        gap: 1px;
+      }
     }
 
     .found {
@@ -122,7 +138,6 @@
       margin-bottom: 20px;
       color: white;
     }
-
 
     .word {
       padding: 5px 10px;
@@ -267,9 +282,6 @@
       return cor;
     }
 
-
-
-
     function gerarGrid() {
       grid = Array.from({ length: tamanho }, () => Array(tamanho).fill(""));
 
@@ -345,7 +357,6 @@
       }
     }
 
-
     function cabe(texto, x, y, dx, dy) {
       for (let i = 0; i < texto.length; i++) {
         const nx = x + dx * i, ny = y + dy * i;
@@ -359,13 +370,14 @@
     function renderizarGrid() {
       const gridEl = document.getElementById('grid');
       gridEl.innerHTML = '';
-
-      const tamanhoCelula = Math.min(
-        Math.floor((window.innerWidth - 40) / tamanho),
-        40
-      );
-
-
+      
+      // Calcula o espaço disponível com margens menores
+      const containerWidth = Math.min(window.innerWidth - 20, 600); // Reduzido de 40 para 20
+      const tamanhoCelula = Math.floor((containerWidth) / tamanho) - 1; // Reduzido de -2 para -1
+      
+      // Ajusta a largura total da grade
+      gridEl.style.maxWidth = `${tamanhoCelula * tamanho + tamanho}px`;
+      
       for (let y = 0; y < tamanho; y++) {
         for (let x = 0; x < tamanho; x++) {
           const div = document.createElement('div');
@@ -373,11 +385,10 @@
           div.dataset.x = x;
           div.dataset.y = y;
           div.innerText = grid[y][x];
-
+          
           div.style.width = `${tamanhoCelula}px`;
           div.style.height = `${tamanhoCelula}px`;
-
-
+          
           div.addEventListener('mousedown', e => startSelection(e, div));
           div.addEventListener('mouseenter', e => continueSelection(e, div));
           div.addEventListener('touchstart', e => startSelection(e, div), { passive: true });
@@ -388,16 +399,14 @@
               continueSelection(e, el);
             }
           });
-
+          
           gridEl.appendChild(div);
         }
       }
-
+      
       document.addEventListener('mouseup', endSelection);
       document.addEventListener('touchend', endSelection);
     }
-
-
 
     function startSelection(e, cell) {
       limparSelecao();
@@ -458,7 +467,6 @@
       selecionadas = [];
     }
 
-
     function verificarConclusao() {
       if (jogoFinalizado) return;
       if (encontradas.length === palavras.length) {
@@ -478,8 +486,6 @@
         }, 1000);
       }
     }
-
-
 
     function limparSelecao() {
       document.querySelectorAll('.cell').forEach(c => {
@@ -588,8 +594,6 @@
         });
       }
     });
-
-
   </script>
   <button id="botao-secreto" style="
   display: none;
@@ -608,7 +612,6 @@
 ">
     ✨
   </button>
-
 </body>
 
 </html>
