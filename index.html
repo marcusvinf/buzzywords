@@ -64,6 +64,7 @@
       width: 100%;
       max-width: 560px;
       padding-bottom: 20px;
+      padding: 10px 15px;
     }
 
 
@@ -336,31 +337,38 @@
     }
 
     function renderizarGrid() {
-      const gridEl = document.getElementById('grid');
-      gridEl.innerHTML = '';
-      for (let y = 0; y < tamanho; y++) {
-        for (let x = 0; x < tamanho; x++) {
-          const div = document.createElement('div');
-          div.className = 'cell';
-          div.dataset.x = x;
-          div.dataset.y = y;
-          div.innerText = grid[y][x];
-          div.addEventListener('mousedown', e => startSelection(e, div));
-          div.addEventListener('touchstart', e => startSelection(e, div), { passive: true });
-          div.addEventListener('mouseenter', e => continueSelection(e, div));
-          div.addEventListener('touchmove', e => {
-            const touch = e.touches[0];
-            const el = document.elementFromPoint(touch.clientX, touch.clientY);
-            if (el && el.classList.contains('cell')) {
-              continueSelection(e, el);
-            }
-          });
-          gridEl.appendChild(div);
+  const gridEl = document.getElementById('grid');
+  gridEl.innerHTML = '';
+  for (let y = 0; y < tamanho; y++) {
+    for (let x = 0; x < tamanho; x++) {
+      const div = document.createElement('div');
+      div.className = 'cell';
+      div.dataset.x = x;
+      div.dataset.y = y;
+      div.innerText = grid[y][x];
+
+      // Desktop
+      div.addEventListener('mousedown', e => startSelection(e, div));
+      div.addEventListener('mouseenter', e => continueSelection(e, div));
+
+      // Touchscreen
+      div.addEventListener('touchstart', e => startSelection(e, div), { passive: true });
+      div.addEventListener('touchmove', e => {
+        const touch = e.touches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (el && el.classList.contains('cell')) {
+          continueSelection(e, el);
         }
-      }
-      document.addEventListener('mouseup', endSelection);
-      document.addEventListener('touchend', endSelection);
+      }, { passive: true }); // 👈 Correção aqui
+
+      gridEl.appendChild(div);
     }
+  }
+
+  document.addEventListener('mouseup', endSelection);
+  document.addEventListener('touchend', endSelection);
+}
+
 
     function startSelection(e, cell) {
       limparSelecao();
