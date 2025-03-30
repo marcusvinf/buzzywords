@@ -57,6 +57,7 @@
     }
 
     .grid {
+      padding: 10px;
       display: grid;
       grid-template-columns: repeat(14, 1fr);
       gap: 4px;
@@ -482,6 +483,10 @@
 
 
     iniciarJogo();
+    document.getElementById('grid').addEventListener('touchmove', (e) => {
+      e.preventDefault();
+    }, { passive: false });
+
   </script>
 </body>
 
