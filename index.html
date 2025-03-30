@@ -152,8 +152,13 @@
     @media (min-width: 700px) {
       .container {
         flex-direction: row;
-        justify-content: space-around;
+        justify-content: center;
         align-items: flex-start;
+        gap: 60px;
+      }
+
+      .sidebar {
+        margin-left: 40px;
       }
     }
   </style>
@@ -342,6 +347,13 @@
           div.addEventListener('mousedown', e => startSelection(e, div));
           div.addEventListener('touchstart', e => startSelection(e, div), { passive: true });
           div.addEventListener('mouseenter', e => continueSelection(e, div));
+          div.addEventListener('touchmove', e => {
+            const touch = e.touches[0];
+            const el = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (el && el.classList.contains('cell')) {
+              continueSelection(e, el);
+            }
+          });
           gridEl.appendChild(div);
         }
       }
