@@ -58,16 +58,17 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(14, 1fr);
+      grid-template-columns: repeat(14, auto);
       gap: 2px;
       justify-content: center;
       box-sizing: border-box;
+      padding: 10px 12px;
+      max-width: 100%;
+      width: calc(100vw - 24px);
+      /* garante respiro no mobile */
       overflow-x: auto;
-      margin: 0 auto;
-      padding: 10px 0;
-      width: 100%;
-      max-width: 100vw;
     }
+
 
     .cell {
       aspect-ratio: 1 / 1;
@@ -107,6 +108,13 @@
       gap: 10px;
       justify-content: center;
       max-width: 90vw;
+    }
+
+    .titulo-jogo {
+      text-align: center;
+      font-size: 2em;
+      margin-bottom: 20px;
+      color: white;
     }
 
 
@@ -157,11 +165,11 @@
         flex-direction: row;
         justify-content: center;
         align-items: flex-start;
-        gap: 60px;
+        gap: 30px;
       }
 
       .sidebar {
-        margin-left: 40px;
+        margin-left: 0;
       }
     }
 
@@ -175,9 +183,9 @@
 </head>
 
 <body>
-  <h1>Caça Palavras</h1>
   <div class="container">
     <div class="main-column">
+      <h1 class="titulo-jogo">Caça Palavras</h1>
       <div id="grid" class="grid"></div>
       <div id="parabens">🎉 Parabéns!</div>
       <button id="botao-reiniciar" onclick="iniciarJogo()">Reiniciar</button>
@@ -522,7 +530,6 @@
       verificarConclusao();
     }
 
-    iniciarJogo();
     document.getElementById('grid').addEventListener('touchmove', (e) => {
       e.preventDefault();
     }, { passive: false });
@@ -544,10 +551,39 @@
     });
 
     // Ativa o easter egg ao clicar no botão secreto
-    document.getElementById('botao-secreto').addEventListener('click', () => {
-      ativarEasterEgg();
-      document.getElementById('botao-secreto').style.display = 'none'; // Oculta após uso
+    document.addEventListener('DOMContentLoaded', () => {
+      iniciarJogo(); // move pra cá também
+
+      document.getElementById('grid').addEventListener('touchmove', (e) => {
+        e.preventDefault();
+      }, { passive: false });
+
+      let cliqueRapidoContador = 0;
+      let tempoCliqueInicial = null;
+
+      document.addEventListener('click', () => {
+        const agora = Date.now();
+        if (!tempoCliqueInicial || agora - tempoCliqueInicial > 2000) {
+          tempoCliqueInicial = agora;
+          cliqueRapidoContador = 1;
+        } else {
+          cliqueRapidoContador++;
+          if (cliqueRapidoContador === 5) {
+            const botao = document.getElementById('botao-secreto');
+            if (botao) botao.style.display = 'block';
+          }
+        }
+      });
+
+      const botaoSecreto = document.getElementById('botao-secreto');
+      if (botaoSecreto) {
+        botaoSecreto.addEventListener('click', () => {
+          ativarEasterEgg();
+          botaoSecreto.style.display = 'none';
+        });
+      }
     });
+
 
   </script>
   <button id="botao-secreto" style="
