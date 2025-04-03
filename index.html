@@ -666,6 +666,7 @@
 
     let cliqueRapidoContador = 0;
     let tempoCliqueInicial = null;
+    let timeoutBotaoSecreto = null;
 
     document.addEventListener('click', () => {
       const agora = Date.now();
@@ -675,14 +676,23 @@
       } else {
         cliqueRapidoContador++;
         if (cliqueRapidoContador === 5) {
-          document.getElementById('botao-secreto').style.display = 'block';
+          const botaoSecreto = document.getElementById('botao-secreto');
+          botaoSecreto.style.display = 'block';
+          
+          if (timeoutBotaoSecreto) {
+            clearTimeout(timeoutBotaoSecreto);
+          }
+          
+          timeoutBotaoSecreto = setTimeout(() => {
+            botaoSecreto.style.display = 'none';
+            cliqueRapidoContador = 0;
+          }, 500);
         }
       }
     });
 
-    // Ativa o easter egg ao clicar no botão secreto
     document.addEventListener('DOMContentLoaded', () => {
-      iniciarJogo(); // move pra cá também
+      iniciarJogo(); 
 
       document.getElementById('grid').addEventListener('touchmove', (e) => {
         e.preventDefault();
@@ -708,6 +718,10 @@
       const botaoSecreto = document.getElementById('botao-secreto');
       if (botaoSecreto) {
         botaoSecreto.addEventListener('click', () => {
+          if (timeoutBotaoSecreto) {
+            clearTimeout(timeoutBotaoSecreto);
+          }
+          
           ativarEasterEgg();
           botaoSecreto.style.display = 'none';
         });
